@@ -1,20 +1,134 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>España Transparente | Calculadora IRPF y PGE 2024</title>
-  <meta name="description" content="Calculadora fiscal 2026. Descubre cuántos días trabajas para pagar impuestos y a qué se destina el PGE 2024.">
-  <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora IRPF España 2026 | SAO3060 FISCAL_HUB</title>
+<meta name="description" content="Calculadora IRPF real por tramos + días trabajas para impuestos + distribución PGE 2024. Datos BOE/AEAT">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+const TRAMOS_IRPF=[{hasta:12450,tipo:0.19},{hasta:20200,tipo:0.24},{hasta:35200,tipo:0.30},{hasta:60000,tipo:0.37},{hasta:300000,tipo:0.45},{hasta:Infinity,tipo:0.47}];
+const SS_TRABAJADOR=0.0635;
+const PGE_2024={pensiones:0.395,sanidad:0.122,deuda:0.085,educacion:0.051,infra:0.048,defensa:0.052,otros:0.247};
+const TOTAL_PGE=198200;
+const DEUDA_PIB=1.576000;
+
+function calcIRPF(bruto){
+  let irpf=0,previo=0,restante=bruto;
+  for(let t of TRAMOS_IRPF){
+    let base=Math.min(restante,t.hasta-previo);
+    if(base<=0)break;
+    irpf+=base*t.tipo;
+    restante-=base;previo=t.hasta;
+  }
+  return Math.round(irpf);
+}
+
+function actualizar(){
+  let bruto=+document.getElementById('slider').value;
+  let irpf=calcIRPF(bruto);
+  let ss=Math.round(bruto*SS_TRABAJADOR);
+  let neto=bruto-irpf-ss;
+  let presion=(irpf+ss)/bruto;
+  let dias=Math.round(365*presion);
+  let libertad=new Date(2026,0,dias).toLocaleDateString('es-ES',{day:'numeric',month:'long'});
+  
+  let dist={};
+  for(let k in PGE_2024) dist[k]=Math.round(irpf*PGE_2024[k]);
+  
+  document.getElementById('bruto_val').textContent=bruto.toLocaleString();
+  document.getElementById('irpf_val').textContent=irpf.toLocaleString();
+  document.getElementById('ss_val').textContent=ss.toLocaleString();
+  document.getElementById('neto_val').textContent=neto.toLocaleString();
+  document.getElementById('dias_val').textContent=dias;
+  document.getElementById('libertad').textContent=libertad;
+  document.getElementById('presion').textContent=(presion*100).toFixed(1)+'%';
+  
+  let pge_html='';
+  for(let k in dist){
+    let color=k=='pensiones'?'#4A90E2':k=='sanidad'?'#7ED321':k=='deuda'?'#F5A623':'#6B7280';
+    pge_html+=<div class="flex justify-between mb-1"><span></span><span class="font-bold text--600">€</span></div>;
+  }
+  document.getElementById('pge_dist').innerHTML=pge_html;
+}
+</script>
 </head>
-<body class="bg-slate-950 text-slate-200 min-h-screen flex items-center justify-center font-mono">
-  <div class="max-w-xl p-8 border border-emerald-500/30 bg-slate-900 shadow-2xl shadow-emerald-500/10">
-    <h1 class="text-2xl text-emerald-400 mb-4 font-bold uppercase tracking-tighter">SAO3060 :: FISCAL_HUB</h1>
-    <p class="mb-6 leading-relaxed">Nodo de transparencia fiscal en vivo. Calculadora de IRPF y análisis de Presupuestos Generales (PGE 2024) en proceso de despliegue.</p>
-    <div class="grid grid-cols-2 gap-4 text-xs uppercase text-emerald-500/60">
-      <div class="p-2 border border-emerald-500/20">Status: BOOTSTRAP_V0.1</div>
-      <div class="p-2 border border-emerald-500/20">Target: LIVE_CALCULATOR</div>
+<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-200 min-h-screen py-8 px-4" onload="actualizar()">
+<div class="max-w-2xl mx-auto">
+  <!-- HEADER INSTITUCIONAL -->
+  <header class="text-center mb-12">
+    <h1 class="text-4xl md:text-5xl font-black bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent mb-4 tracking-tight">SAO3060 FISCAL_HUB</h1>
+    <p class="text-xl text-slate-400 font-light">Calculadora IRPF España 2026 | PGE 2024 | Transparencia fiscal institucional</p>
+  </header>
+
+  <!-- CALCULADORA PRINCIPAL -->
+  <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 md:p-12 shadow-2xl mb-12">
+    <div class="text-center mb-8">
+      <label class="block text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Salario Bruto Anual</label>
+      <input id="slider" type="range" min="15000" max="100000" step="500" value="30000" oninput="actualizar()" class="w-full h-3 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+      <div class="text-4xl font-black text-emerald-400 mt-6" id="bruto_val">30.000<span class="text-sm font-normal text-slate-400">€</span></div>
+    </div>
+
+    <!-- RESULTADOS PRINCIPALES -->
+    <div class="grid md:grid-cols-2 gap-6 mb-8">
+      <div class="bg-gradient-to-r from-red-900/50 to-red-800/30 border border-red-500/30 p-6 rounded-xl">
+        <div class="text-2xl font-black text-red-400 mb-2">IRPF</div>
+        <div class="text-3xl font-black text-red-300" id="irpf_val">5.700<span class="text-sm">€</span></div>
+      </div>
+      <div class="bg-gradient-to-r from-orange-900/50 to-orange-800/30 border border-orange-500/30 p-6 rounded-xl">
+        <div class="text-2xl font-black text-orange-400 mb-2">Seguridad Social</div>
+        <div class="text-3xl font-black text-orange-300" id="ss_val">1.905<span class="text-sm">€</span></div>
+      </div>
+      <div class="bg-gradient-to-r from-emerald-900/50 to-emerald-800/30 border border-emerald-500/30 p-6 rounded-xl">
+        <div class="text-2xl font-black text-emerald-400 mb-2">Salario Neto</div>
+        <div class="text-3xl font-black text-emerald-300" id="neto_val">22.395<span class="text-sm">€</span></div>
+      </div>
+      <div class="bg-gradient-to-r from-amber-900/50 to-amber-800/30 border border-amber-500/30 p-6 rounded-xl">
+        <div class="text-2xl font-black text-amber-400 mb-2">Días para el Estado</div>
+        <div class="text-3xl font-black text-amber-300" id="dias_val">91<span class="text-sm"> días</span></div>
+      </div>
+    </div>
+
+    <!-- PRESIÓN FISCAL Y LIBERTAD -->
+    <div class="grid md:grid-cols-2 gap-6 mb-8">
+      <div class="bg-slate-900/50 border border-slate-500/30 p-6 rounded-xl text-center">
+        <div class="text-sm text-slate-400 uppercase tracking-wider mb-2">Presión Fiscal Directa</div>
+        <div class="text-4xl font-black text-slate-200" id="presion">25.4<span class="text-sm">%</span></div>
+      </div>
+      <div class="bg-slate-900/50 border border-slate-500/30 p-6 rounded-xl text-center">
+        <div class="text-sm text-slate-400 uppercase tracking-wider mb-2">Libertad Fiscal Empieza</div>
+        <div class="text-2xl font-bold text-emerald-400" id="libertad">1 de abril</div>
+      </div>
     </div>
   </div>
+
+  <!-- DISTRIBUCIÓN PGE 2024 -->
+  <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 md:p-12 mb-12">
+    <h2 class="text-2xl font-black text-emerald-400 mb-6 text-center uppercase tracking-tight">¿A Dónde Va Tu IRPF? (PGE 2024)</h2>
+    <div id="pge_dist" class="space-y-2 text-sm">
+      <!-- Generado dinámicamente -->
+    </div>
+    <div class="text-center mt-8 text-xs text-slate-500">
+      Total PGE 2024: <span class="font-bold text-emerald-400">198.200M€</span> | Deuda: <span class="font-bold text-red-400">1.576B€ (113% PIB)</span>
+    </div>
+  </div>
+
+  <!-- RADAR INTEGRACIÓN -->
+  <div class="bg-gradient-to-r from-emerald-900/20 to-slate-900/20 border border-emerald-500/20 p-6 rounded-xl">
+    <h3 class="text-xl font-bold text-emerald-400 mb-4 flex items-center">
+      <span class="w-2 h-2 bg-emerald-400 rounded-full mr-2 animate-pulse"></span>
+      SAO3060 RADAR → Licitaciones Tàrrega
+    </h3>
+    <a href="https://weembellz.github.io/sao3060-radar/" target="_blank" class="inline-flex items-center px-6 py-3 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 rounded-lg text-emerald-300 hover:text-emerald-100 transition-all duration-200 font-medium">
+      Ver €1.42M contratos LIVE →
+    </a>
+  </div>
+
+  <!-- FOOTER INSTITUCIONAL -->
+  <footer class="text-center mt-16 pt-12 border-t-2 border-slate-800">
+    <div class="text-sm text-slate-500 mb-4">Datos oficiales BOE-A-2023-24144 | AEAT 2026 | Banco España</div>
+    <div class="text-xs text-slate-600">SAO3060-ESP-01 | Nodo Tàrrega | Enero 2026</div>
+  </footer>
+</div>
 </body>
 </html>
